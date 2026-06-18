@@ -1,0 +1,1 @@
+- [Hangil backend open decisions](project_hangil-backend-open-decisions.md) — unresolved Q's blocking impl: Better Auth table model, AI gating, streak/ratelimit timezone
