@@ -27,6 +27,6 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            cd ~/hangil-server
+            cd /opt/hangil-server
             git pull origin main
             docker compose up -d --build
