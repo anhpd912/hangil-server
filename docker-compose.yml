@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - PORT=3201
+      - HOST=0.0.0.0
+    ports:
+      - "127.0.0.1:3201:3201"
