@@ -72,18 +72,16 @@ docker compose up -d --build
 
 ## 9. CI/CD tự động (GitHub Actions) — `.github/workflows/deploy.yml`
 
-Push lên `main` → tự build+test → SSH vào VPS → `git pull` + `docker compose up -d --build`. Cần generate SSH key riêng cho CI (KHÔNG dùng key cá nhân) và set 3 secret trên GitHub repo:
+Push lên `main` → tự build+test → SSH vào VPS (bằng password) → `git pull` + `docker compose up -d --build`. Set 3 secret trên GitHub repo:
 
 ```bash
-# Trên VPS — tạo deploy key riêng, add vào authorized_keys
-ssh-keygen -t ed25519 -f ~/.ssh/github-deploy -N ""
-cat ~/.ssh/github-deploy.pub >> ~/.ssh/authorized_keys
-
 # Trên máy local — set secret qua gh CLI (đã đăng nhập gh auth login)
 gh secret set VPS_HOST --body "<ip-vps>"
 gh secret set VPS_USER --body "<ssh-user>"
-gh secret set VPS_SSH_KEY < ~/.ssh/github-deploy   # private key, copy từ VPS về an toàn rồi xoá local copy
+gh secret set VPS_PASSWORD --body "<ssh-password>"
 ```
+
+Lưu ý: password auth qua CI kém an toàn hơn SSH key — đủ dùng cho MVP, nên đổi sang `ssh-keygen` + key riêng khi có thời gian (sửa lại `password:` → `key:` trong `deploy.yml`).
 
 Repo trên VPS phải đã clone sẵn tại `~/hangil-server` (bước 2) và `.env` đã có (bước 3) — workflow chỉ pull + rebuild, không tạo lại từ đầu.
 
