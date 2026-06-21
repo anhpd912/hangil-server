@@ -16,7 +16,6 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
-
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
@@ -25,6 +24,8 @@ export const user = pgTable("user", {
   streakCount: integer("streak_count").default(0),
   lastStudiedAt: timestamp("last_studied_at"),
   role: text("role").default("user"),
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  dailyGoalMinutes: integer("daily_goal_minutes"),
 });
 
 export const session = pgTable(
