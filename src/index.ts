@@ -16,7 +16,11 @@ import { AppError } from "./lib/errors.js";
 
 const fastify = Fastify({ logger: true });
 
-await fastify.register(cors, { origin: process.env.FRONTEND_URL ?? true });
+const allowedOrigins = [
+  process.env.FRONTEND_URL ?? "http://localhost:3000",
+  process.env.ADMIN_FRONTEND_URL ?? "http://localhost:3100",
+];
+await fastify.register(cors, { origin: allowedOrigins });
 await fastify.register(helmet, { crossOriginResourcePolicy: { policy: "cross-origin" } });
 await fastify.register(rateLimit, { max: 100, timeWindow: "1 minute" });
 await fastify.register(authPlugin);
