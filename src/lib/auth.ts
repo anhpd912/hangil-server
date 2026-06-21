@@ -8,7 +8,10 @@ import * as schema from "../db/auth-schema.js";
 export const auth = betterAuth({
   basePath: "/api/v1/auth",
   database: drizzleAdapter(db, { provider: "pg", schema }),
-  trustedOrigins: [process.env.FRONTEND_URL ?? "http://localhost:3000"],
+  trustedOrigins: [
+    process.env.FRONTEND_URL ?? "http://localhost:3000",
+    process.env.ADMIN_FRONTEND_URL ?? "http://localhost:3100",
+  ],
   emailAndPassword: {
     enabled: true,
   },
