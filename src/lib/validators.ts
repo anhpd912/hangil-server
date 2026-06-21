@@ -25,3 +25,10 @@ export const journalCheckBodySchema = z.object({
 export const waitlistJoinBodySchema = z.object({
   email: z.string().email().max(255),
 });
+
+export const meUpdateBodySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  track: z.enum(["k_culture", "topik"]).optional(),
+  dailyGoalMinutes: z.number().int().min(1).max(180).optional(),
+  onboardingCompleted: z.boolean().optional(),
+});
