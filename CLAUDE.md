@@ -105,10 +105,14 @@ npm run test # vitest
 ✕ Không bỏ qua rate limiting cho AI routes
 # ══════════════════════════════════════════════
 
+## AGENT WORKFLOW RULES
+- Đọc/trả lời prompt user trong repo này bằng caveman mode (compress, tiết kiệm token).
+- Dùng GitNexus (`gitnexus_query`/`gitnexus_context`/`gitnexus_explore`) để hiểu code — KHÔNG grep toàn project. Chỉ Grep/Read trực tiếp khi GitNexus không trả đủ thông tin.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **hangil-server** (502 symbols, 635 relationships, 5 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **hangil-server** (501 symbols, 634 relationships, 5 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
