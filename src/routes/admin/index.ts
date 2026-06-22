@@ -7,6 +7,7 @@ import adminLessonsRoutes from "./lessons.js";
 import adminVocabularyRoutes from "./vocabulary.js";
 import adminStatsRoutes from "./stats.js";
 import adminWaitlistRoutes from "./waitlist.js";
+import adminFeedbackRoutes from "./feedback.js";
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", requireAuth);
@@ -17,6 +18,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(adminVocabularyRoutes);
   await fastify.register(adminStatsRoutes);
   await fastify.register(adminWaitlistRoutes);
+  await fastify.register(adminFeedbackRoutes);
 };
 
 export default adminRoutes;

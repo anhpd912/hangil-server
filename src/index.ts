@@ -14,6 +14,7 @@ import meRoutes from "./routes/me.js";
 import aiRoutes from "./routes/ai.js";
 import adminRoutes from "./routes/admin/index.js";
 import waitlistRoutes from "./routes/waitlist.js";
+import feedbackRoutes from "./routes/feedback.js";
 import { AppError } from "./lib/errors.js";
 
 const fastify = Fastify({ logger: true });
@@ -37,6 +38,7 @@ await fastify.register(
     await instance.register(meRoutes);
     await instance.register(aiRoutes);
     await instance.register(waitlistRoutes);
+    await instance.register(feedbackRoutes);
     await instance.register(adminRoutes, { prefix: "/admin" });
   },
   { prefix: "/api/v1" },
