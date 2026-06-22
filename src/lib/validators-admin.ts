@@ -1,5 +1,6 @@
 // Zod schemas cho /api/v1/admin/* routes
 import { z } from "zod";
+import { lessonContentSchema } from "./validators.js";
 
 const paginationSchema = {
   page: z.coerce.number().int().min(1).default(1),
@@ -24,7 +25,7 @@ export const adminLessonCreateBodySchema = z.object({
   track: z.enum(["k_culture", "topik"]),
   level: z.enum(["beginner", "intermediate", "advanced"]),
   orderIndex: z.number().int().min(0).default(0),
-  content: z.unknown().optional(),
+  content: lessonContentSchema.optional(),
 });
 
 export const adminLessonPatchBodySchema = adminLessonCreateBodySchema.partial();
@@ -46,3 +47,9 @@ export const adminVocabularyCreateBodySchema = z.object({
 export const adminVocabularyPatchBodySchema = adminVocabularyCreateBodySchema
   .omit({ lessonId: true })
   .partial();
+
+export const adminVocabularyBulkCreateBodySchema = z.object({
+  lessonId: z.string().uuid(),
+  // Mỗi dòng: korean|romanization|vietnamese (pipe-separated), parse từ 1 text block
+  text: z.string().min(1),
+});
