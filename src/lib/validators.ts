@@ -65,3 +65,8 @@ export const meUpdateBodySchema = z.object({
   dailyGoalMinutes: z.number().int().min(1).max(180).optional(),
   onboardingCompleted: z.boolean().optional(),
 });
+
+export const feedbackCreateBodySchema = z.object({
+  message: z.string().min(1).max(2000),
+  email: z.string().email().max(255).optional(),
+});

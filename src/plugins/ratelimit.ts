@@ -3,7 +3,7 @@ import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 import { AppError } from "../lib/errors.js";
 
-const redis = new Redis({
+export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_URL ?? "",
   token: process.env.UPSTASH_REDIS_TOKEN ?? "",
 });

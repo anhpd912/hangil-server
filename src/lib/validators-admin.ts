@@ -14,6 +14,8 @@ export const adminUsersListQuerySchema = z.object({
 
 export const adminWaitlistListQuerySchema = z.object(paginationSchema);
 
+export const adminFeedbackListQuerySchema = z.object(paginationSchema);
+
 export const adminUserPatchBodySchema = z.object({
   plan: z.enum(["free", "pro"]).optional(),
   role: z.enum(["user", "admin"]).optional(),

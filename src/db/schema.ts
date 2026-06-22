@@ -10,6 +10,7 @@ import {
   timestamp,
   jsonb,
   pgEnum,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.js";
 
@@ -44,20 +45,24 @@ export const vocabulary = pgTable("vocabulary", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const userCards = pgTable("user_cards", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  vocabId: uuid("vocab_id")
-    .notNull()
-    .references(() => vocabulary.id, { onDelete: "cascade" }),
-  easiness: real("easiness").notNull().default(2.5),
-  repetitions: integer("repetitions").notNull().default(0),
-  intervalDays: integer("interval_days").notNull().default(1),
-  nextReviewAt: timestamp("next_review_at").notNull().defaultNow(),
-  lastReviewedAt: timestamp("last_reviewed_at"),
-});
+export const userCards = pgTable(
+  "user_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    vocabId: uuid("vocab_id")
+      .notNull()
+      .references(() => vocabulary.id, { onDelete: "cascade" }),
+    easiness: real("easiness").notNull().default(2.5),
+    repetitions: integer("repetitions").notNull().default(0),
+    intervalDays: integer("interval_days").notNull().default(1),
+    nextReviewAt: timestamp("next_review_at").notNull().defaultNow(),
+    lastReviewedAt: timestamp("last_reviewed_at"),
+  },
+  (table) => [uniqueIndex("user_cards_user_vocab_idx").on(table.userId, table.vocabId)],
+);
 
 export const userProgress = pgTable("user_progress", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -84,5 +89,14 @@ export const journalEntries = pgTable("journal_entries", {
 export const waitlistEntries = pgTable("waitlist_entries", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const feedbackEntries = pgTable("feedback_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  email: text("email"),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("new"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

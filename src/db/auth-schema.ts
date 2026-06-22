@@ -23,6 +23,7 @@ export const user = pgTable("user", {
   track: text("track"),
   streakCount: integer("streak_count").default(0),
   lastStudiedAt: timestamp("last_studied_at"),
+  xp: integer("xp").default(0),
   role: text("role").default("user"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
   dailyGoalMinutes: integer("daily_goal_minutes"),
