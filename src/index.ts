@@ -15,7 +15,7 @@ import aiRoutes from "./routes/ai.js";
 import adminRoutes from "./routes/admin/index.js";
 import waitlistRoutes from "./routes/waitlist.js";
 import feedbackRoutes from "./routes/feedback.js";
-import metricsPlugin from 'fastify-metrics';
+import * as fastifyMetrics from "fastify-metrics";
 import { AppError } from "./lib/errors.js";
 
 const fastify = Fastify({ logger: true });
@@ -29,9 +29,13 @@ await fastify.register(helmet, { crossOriginResourcePolicy: { policy: "cross-ori
 await fastify.register(rateLimit, { max: 100, timeWindow: "1 minute" });
 await fastify.register(authPlugin);
 // 1. Đăng ký Metrics ở cấp độ gốc
-await fastify.register(metricsPlugin, {
-  endpoint: '/metrics', // Tự động tạo route GET /metrics
-  defaultMetrics: { enabled: true }
+// fastify-metrics's .d.ts không khớp generic FastifyTypeProvider dưới NodeNext +
+// "type":"module" (TS suy ra type của default export là cả module namespace) — lỗi
+// type-level của package, hành vi runtime đúng. Suppress 1 dòng, không dùng any.
+// @ts-expect-error — xem comment phía trên
+await fastify.register(fastifyMetrics.default, {
+  endpoint: "/metrics", // Tự động tạo route GET /metrics
+  defaultMetrics: { enabled: true },
 });
 await fastify.register(
   async (instance) => {
