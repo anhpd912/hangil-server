@@ -7,6 +7,7 @@ import { vocabulary } from "../../db/schema.js";
 import {
   adminVocabularyCreateBodySchema,
   adminVocabularyPatchBodySchema,
+  adminVocabularyBulkCreateBodySchema,
 } from "../../lib/validators-admin.js";
 
 const vocabularyQuerySchema = z.object({ lessonId: z.string().uuid().optional() });
@@ -40,6 +41,39 @@ const adminVocabularyRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const [created] = await db.insert(vocabulary).values(parsed.data).returning();
+    return reply.status(201).send({ success: true, data: created });
+  });
+
+  fastify.post("/vocabulary/bulk", async (request, reply) => {
+    const parsed = adminVocabularyBulkCreateBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        success: false,
+        error: "Body không hợp lệ",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    const { lessonId, text } = parsed.data;
+    const rows = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [korean, romanization, vietnamese] = line.split("|").map((s) => s?.trim() ?? "");
+        return { lessonId, korean, romanization, vietnamese };
+      })
+      .filter((row) => row.korean && row.romanization && row.vietnamese);
+
+    if (rows.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: "Không có dòng hợp lệ (định dạng: korean|romanization|vietnamese)",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    const created = await db.insert(vocabulary).values(rows).returning();
     return reply.status(201).send({ success: true, data: created });
   });
 

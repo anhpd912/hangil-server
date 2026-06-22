@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import authPlugin from "./plugins/auth.js";
 import authRoutes from "./routes/auth.js";
 import lessonsRoutes from "./routes/lessons.js";
+import vocabularyRoutes from "./routes/vocabulary.js";
 import flashcardRoutes from "./routes/flashcard.js";
 import progressRoutes from "./routes/progress.js";
 import meRoutes from "./routes/me.js";
@@ -30,6 +31,7 @@ await fastify.register(
   async (instance) => {
     await instance.register(authRoutes);
     await instance.register(lessonsRoutes);
+    await instance.register(vocabularyRoutes);
     await instance.register(flashcardRoutes);
     await instance.register(progressRoutes);
     await instance.register(meRoutes);
