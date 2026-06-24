@@ -70,3 +70,32 @@ export const feedbackCreateBodySchema = z.object({
   message: z.string().min(1).max(2000),
   email: z.string().email().max(255).optional(),
 });
+
+// AI sinh tối thiểu/tối đa GAME_QUESTION_COUNT câu — validate strict trước khi tin response của AI
+export const contextFillQuestionSchema = z.object({
+  vocabId: z.string().uuid(),
+  sentenceKo: z.string().min(1),
+  translationVi: z.string().min(1),
+  options: z.array(z.string().min(1)).length(4),
+  correctIndex: z.number().int().min(0).max(3),
+});
+export const contextFillQuestionsSchema = z.array(contextFillQuestionSchema);
+
+export const speedQuizQuestionSchema = z.object({
+  vocabId: z.string().uuid(),
+  korean: z.string().min(1),
+  options: z.array(z.string().min(1)).length(4),
+  correctIndex: z.number().int().min(0).max(3),
+});
+export const speedQuizQuestionsSchema = z.array(speedQuizQuestionSchema);
+
+export const gameSubmitBodySchema = z.object({
+  sessionId: z.string().uuid(),
+  answers: z.array(
+    z.object({
+      vocabId: z.string().uuid(),
+      selectedIndex: z.number().int().min(0).max(3).optional(),
+      matchedVocabId: z.string().uuid().optional(),
+    }),
+  ),
+});

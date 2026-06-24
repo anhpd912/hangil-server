@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth.js";
 import lessonsRoutes from "./routes/lessons.js";
 import vocabularyRoutes from "./routes/vocabulary.js";
 import flashcardRoutes from "./routes/flashcard.js";
+import gamesRoutes from "./routes/games.js";
 import progressRoutes from "./routes/progress.js";
 import meRoutes from "./routes/me.js";
 import aiRoutes from "./routes/ai.js";
@@ -43,6 +44,7 @@ await fastify.register(
     await instance.register(lessonsRoutes);
     await instance.register(vocabularyRoutes);
     await instance.register(flashcardRoutes);
+    await instance.register(gamesRoutes);
     await instance.register(progressRoutes);
     await instance.register(meRoutes);
     await instance.register(aiRoutes);
