@@ -9,6 +9,8 @@ export type LearnedWord = {
   korean: string;
   romanization: string;
   vietnamese: string;
+  exampleSentenceKo: string | null;
+  exampleSentenceVi: string | null;
 };
 
 export const GAME_QUESTION_COUNT = 10;
@@ -24,6 +26,8 @@ export async function selectLearnedWords(
       korean: vocabulary.korean,
       romanization: vocabulary.romanization,
       vietnamese: vocabulary.vietnamese,
+      exampleSentenceKo: vocabulary.exampleSentenceKo,
+      exampleSentenceVi: vocabulary.exampleSentenceVi,
     })
     .from(userCards)
     .innerJoin(vocabulary, eq(userCards.vocabId, vocabulary.id))

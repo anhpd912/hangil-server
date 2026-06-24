@@ -1,5 +1,7 @@
 // Routes: POST /games/{mode}/generate, POST /games/:mode/submit — 3 mode ôn tập: matching (không AI),
-// context-fill, speed-quiz (AI sinh câu hỏi từ từ vựng đã học). Trả lời sai = SRS grade 0 (Lại).
+// context-fill, speed-quiz. Free: câu hỏi sinh không cần AI (deterministic). Pro: AI sinh câu hỏi,
+// giới hạn PRO_AI_GAME_DAILY_LIMIT lần/ngày — hết quota hoặc AI lỗi thì fallback im lặng về bản
+// deterministic, không hiện lỗi cho user. Trả lời sai = SRS grade 0 (Lại).
 import type { FastifyPluginAsync } from "fastify";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
@@ -7,14 +9,46 @@ import { db } from "../db/index.js";
 import { userCards } from "../db/schema.js";
 import { calculateNextReview } from "../services/srs.js";
 import { selectLearnedWords, GAME_QUESTION_COUNT, type LearnedWord } from "../services/games/select-words.js";
-import { generateContextFillQuestions, generateSpeedQuizQuestions } from "../services/ai/index.js";
+import { buildContextFillQuestions, buildSpeedQuizQuestions } from "../services/games/deterministic-questions.js";
+import {
+  generateContextFillQuestions,
+  generateSpeedQuizQuestions,
+  type ContextFillQuestion,
+  type SpeedQuizQuestion,
+} from "../services/ai/index.js";
 import { requireAuth } from "../lib/require-auth.js";
 import { checkRateLimit, redis } from "../plugins/ratelimit.js";
 import { gameSubmitBodySchema } from "../lib/validators.js";
 import { AppError } from "../lib/errors.js";
 
 const GAME_SESSION_TTL_SECONDS = 30 * 60;
-const FREE_AI_GAME_DAILY_LIMIT = 5;
+const PRO_AI_GAME_DAILY_LIMIT = 5;
+
+async function getContextFillQuestions(userId: string, plan: string | undefined, words: LearnedWord[]): Promise<ContextFillQuestion[]> {
+  if (plan === "pro") {
+    try {
+      await checkRateLimit(`ai-game:${userId}`, PRO_AI_GAME_DAILY_LIMIT, "1 d");
+      const result = await generateContextFillQuestions(words);
+      if (result.ok) return result.data;
+    } catch {
+      // hết quota AI hôm nay hoặc AI lỗi — fallback im lặng, không hiện lỗi cho user
+    }
+  }
+  return buildContextFillQuestions(words);
+}
+
+async function getSpeedQuizQuestions(userId: string, plan: string | undefined, words: LearnedWord[]): Promise<SpeedQuizQuestion[]> {
+  if (plan === "pro") {
+    try {
+      await checkRateLimit(`ai-game:${userId}`, PRO_AI_GAME_DAILY_LIMIT, "1 d");
+      const result = await generateSpeedQuizQuestions(words);
+      if (result.ok) return result.data;
+    } catch {
+      // hết quota AI hôm nay hoặc AI lỗi — fallback im lặng, không hiện lỗi cho user
+    }
+  }
+  return buildSpeedQuizQuestions(words);
+}
 
 type GameQuestionEntry = { vocabId: string; cardId: string; correctIndex: number };
 type GameSession =
@@ -61,21 +95,15 @@ const gamesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post("/games/context-fill/generate", { preHandler: requireAuth }, async (request, reply) => {
     const userId = request.user!.id;
-    if (request.user!.plan !== "pro") {
-      await checkRateLimit(`ai-game:${userId}`, FREE_AI_GAME_DAILY_LIMIT, "1 d");
-    }
     const words = await ensureEnoughWords(userId);
-    const result = await generateContextFillQuestions(words);
-    if (!result.ok) {
-      throw new AppError(result.error, "AI_GENERATION_FAILED", 502);
-    }
+    const questions = await getContextFillQuestions(userId, request.user!.plan, words);
 
     const cardIdByVocabId = new Map(words.map((w) => [w.vocabId, w.cardId]));
     const sessionId = randomUUID();
     const session: GameSession = {
       mode: "context-fill",
       userId,
-      questions: result.data.map((q) => ({
+      questions: questions.map((q) => ({
         vocabId: q.vocabId,
         cardId: cardIdByVocabId.get(q.vocabId)!,
         correctIndex: q.correctIndex,
@@ -87,7 +115,7 @@ const gamesRoutes: FastifyPluginAsync = async (fastify) => {
       success: true,
       data: {
         sessionId,
-        questions: result.data.map(({ vocabId, sentenceKo, translationVi, options }) => ({
+        questions: questions.map(({ vocabId, sentenceKo, translationVi, options }) => ({
           vocabId,
           sentenceKo,
           translationVi,
@@ -99,21 +127,15 @@ const gamesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post("/games/speed-quiz/generate", { preHandler: requireAuth }, async (request, reply) => {
     const userId = request.user!.id;
-    if (request.user!.plan !== "pro") {
-      await checkRateLimit(`ai-game:${userId}`, FREE_AI_GAME_DAILY_LIMIT, "1 d");
-    }
     const words = await ensureEnoughWords(userId);
-    const result = await generateSpeedQuizQuestions(words);
-    if (!result.ok) {
-      throw new AppError(result.error, "AI_GENERATION_FAILED", 502);
-    }
+    const questions = await getSpeedQuizQuestions(userId, request.user!.plan, words);
 
     const cardIdByVocabId = new Map(words.map((w) => [w.vocabId, w.cardId]));
     const sessionId = randomUUID();
     const session: GameSession = {
       mode: "speed-quiz",
       userId,
-      questions: result.data.map((q) => ({
+      questions: questions.map((q) => ({
         vocabId: q.vocabId,
         cardId: cardIdByVocabId.get(q.vocabId)!,
         correctIndex: q.correctIndex,
@@ -125,7 +147,7 @@ const gamesRoutes: FastifyPluginAsync = async (fastify) => {
       success: true,
       data: {
         sessionId,
-        questions: result.data.map(({ vocabId, korean, options }) => ({ vocabId, korean, options })),
+        questions: questions.map(({ vocabId, korean, options }) => ({ vocabId, korean, options })),
       },
     });
   });
