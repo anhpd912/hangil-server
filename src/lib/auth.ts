@@ -16,7 +16,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      await sendResetPasswordEmail(user.email, url);
+      const result = await sendResetPasswordEmail(user.email, url);
+      if (!result.ok) {
+        console.error("[auth] sendResetPassword failed:", result.error, { to: user.email });
+        throw new Error(result.error);
+      }
     },
   },
   socialProviders: {
