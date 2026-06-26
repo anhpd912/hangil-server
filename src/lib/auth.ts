@@ -16,7 +16,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      const result = await sendResetPasswordEmail(user.email, url);
+      // Better Auth builds `url` from BETTER_AUTH_URL (backend). Extract token
+      // and reconstruct with FRONTEND_URL so the link points to the Next.js app.
+      const token = new URL(url).searchParams.get("token");
+      const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
+      const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+      const result = await sendResetPasswordEmail(user.email, resetUrl);
       if (!result.ok) {
         console.error("[auth] sendResetPassword failed:", result.error, { to: user.email });
         throw new Error(result.error);
