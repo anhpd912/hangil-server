@@ -115,11 +115,12 @@ const gamesRoutes: FastifyPluginAsync = async (fastify) => {
       success: true,
       data: {
         sessionId,
-        questions: questions.map(({ vocabId, sentenceKo, translationVi, options }) => ({
+        questions: questions.map(({ vocabId, sentenceKo, translationVi, options, correctIndex }) => ({
           vocabId,
           sentenceKo,
           translationVi,
           options,
+          correctIndex,
         })),
       },
     });
@@ -147,7 +148,7 @@ const gamesRoutes: FastifyPluginAsync = async (fastify) => {
       success: true,
       data: {
         sessionId,
-        questions: questions.map(({ vocabId, korean, options }) => ({ vocabId, korean, options })),
+        questions: questions.map(({ vocabId, korean, options, correctIndex }) => ({ vocabId, korean, options, correctIndex })),
       },
     });
   });
