@@ -4,6 +4,7 @@ import { bearer } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/index.js";
 import * as schema from "../db/auth-schema.js";
+import { sendResetPasswordEmail } from "../services/email.js";
 
 export const auth = betterAuth({
   basePath: "/api/v1/auth",
@@ -14,6 +15,9 @@ export const auth = betterAuth({
   ],
   emailAndPassword: {
     enabled: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendResetPasswordEmail(user.email, url);
+    },
   },
   socialProviders: {
     google: {

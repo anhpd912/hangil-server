@@ -5,6 +5,7 @@ import { db } from "../db/index.js";
 import { userCards, vocabulary, lessons, user } from "../db/schema.js";
 import { calculateNextReview } from "../services/srs.js";
 import { toVnDateKey } from "../services/streak.js";
+import { initLessonCards } from "../services/lesson-cards.js";
 import { requireAuth } from "../lib/require-auth.js";
 import { redis } from "../plugins/ratelimit.js";
 import { cardReviewBodySchema, cardInitBodySchema } from "../lib/validators.js";
@@ -186,27 +187,8 @@ const flashcardRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    const vocabList = await db
-      .select({ id: vocabulary.id })
-      .from(vocabulary)
-      .where(eq(vocabulary.lessonId, parsed.data.lessonId));
-
-    if (vocabList.length === 0) {
-      return reply.send({ success: true, data: { addedCount: 0 } });
-    }
-
-    const toInsert = vocabList.map((vocab) => ({
-      userId: request.user!.id,
-      vocabId: vocab.id,
-    }));
-
-    const inserted = await db
-      .insert(userCards)
-      .values(toInsert)
-      .onConflictDoNothing()
-      .returning({ id: userCards.id });
-
-    return reply.send({ success: true, data: { addedCount: inserted.length } });
+    const addedCount = await initLessonCards(request.user!.id, parsed.data.lessonId);
+    return reply.send({ success: true, data: { addedCount } });
   });
 };
 

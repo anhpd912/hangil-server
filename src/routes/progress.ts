@@ -4,6 +4,7 @@ import { and, eq, count, gt, isNotNull, isNull, asc } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { userCards, userProgress, user, lessons } from "../db/schema.js";
 import { updateStreak } from "../services/streak.js";
+import { initLessonCards } from "../services/lesson-cards.js";
 import { requireAuth } from "../lib/require-auth.js";
 import { lessonCompleteBodySchema } from "../lib/validators.js";
 
@@ -99,13 +100,17 @@ const progressRoutes: FastifyPluginAsync = async (fastify) => {
               .returning()
           )[0];
 
-      const streakResult = await updateStreak(userId);
+      const [streakResult, addedCount] = await Promise.all([
+        updateStreak(userId),
+        initLessonCards(userId, lessonId),
+      ]);
 
       return reply.send({
         success: true,
         data: {
           progress: progressRow,
           streak: streakResult.ok ? streakResult.data : null,
+          addedCount,
         },
       });
     },
