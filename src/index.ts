@@ -16,6 +16,7 @@ import aiRoutes from "./routes/ai.js";
 import adminRoutes from "./routes/admin/index.js";
 import waitlistRoutes from "./routes/waitlist.js";
 import feedbackRoutes from "./routes/feedback.js";
+import ttsRoutes from "./routes/tts.js";
 import * as fastifyMetrics from "fastify-metrics";
 import { AppError } from "./lib/errors.js";
 
@@ -55,6 +56,7 @@ await fastify.register(
     await instance.register(aiRoutes);
     await instance.register(waitlistRoutes);
     await instance.register(feedbackRoutes);
+    await instance.register(ttsRoutes);
     await instance.register(adminRoutes, { prefix: "/admin" });
   },
   { prefix: "/api/v1" },
