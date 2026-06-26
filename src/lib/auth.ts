@@ -15,14 +15,13 @@ export const auth = betterAuth({
   ],
   emailAndPassword: {
     enabled: true,
-    sendResetPassword: async ({ user, url }) => {
-      // Better Auth builds `url` from BETTER_AUTH_URL (backend URL). Swap only
-      // the origin + pathname; preserve the raw query string intact so the token
-      // is never re-encoded (URLSearchParams.get decodes + as space, corrupting tokens).
-      const authUrl = new URL(url);
+    sendResetPassword: async ({ user, url: _url, token }) => {
+      // Better Auth's `url` is {BETTER_AUTH_URL}/reset-password/{token}?callbackURL=...
+      // Token is a PATH segment, not a query param — so we build the frontend URL
+      // directly from the `token` param rather than parsing the backend URL.
       const frontendBase = process.env.FRONTEND_URL ?? "http://localhost:3000";
-      const resetUrl = `${frontendBase}/reset-password${authUrl.search}`;
-      console.info("[auth] sendResetPassword →", resetUrl.replace(/token=[^&]+/, "token=***"));
+      const resetUrl = `${frontendBase}/reset-password?token=${encodeURIComponent(token)}`;
+      console.info("[auth] sendResetPassword → token received, sending to", user.email);
       const result = await sendResetPasswordEmail(user.email, resetUrl);
       if (!result.ok) {
         console.error("[auth] sendResetPassword failed:", result.error, { to: user.email });
