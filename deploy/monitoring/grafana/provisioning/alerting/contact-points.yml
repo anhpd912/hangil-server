@@ -1,0 +1,24 @@
+# Dùng unified alerting của Grafana thay vì dựng Alertmanager riêng — tiết kiệm ~80MB RAM
+# và một service phải trông, đổi lại alert chỉ chạy khi Grafana chạy (chấp nhận được:
+# alert "API down" quan trọng nhất vẫn do Grafana đánh giá, và Grafana restart cùng VPS).
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: telegram
+    receivers:
+      - uid: telegram-main
+        type: telegram
+        # $VAR được Grafana nội suy từ biến môi trường lúc nạp provisioning —
+        # token KHÔNG nằm trong repo, đặt trong /opt/monitoring/.env
+        settings:
+          bottoken: $TELEGRAM_BOT_TOKEN
+          chatid: $TELEGRAM_CHAT_ID
+          parse_mode: HTML
+          message: |
+            <b>{{ .Status | toUpper }}</b> — {{ len .Alerts }} alert
+            {{ range .Alerts }}
+            <b>{{ .Labels.alertname }}</b> ({{ .Labels.severity }})
+            {{ .Annotations.summary }}
+            {{ end }}
+        disableResolveMessage: false

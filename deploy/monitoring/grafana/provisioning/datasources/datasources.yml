@@ -1,0 +1,23 @@
+# uid cố định — alert rules và dashboard JSON tham chiếu theo uid này, không được đổi.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://hangil-prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 30s     # khớp scrape_interval, để $__rate_interval tính đúng
+      httpMethod: POST
+    editable: false
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://hangil-loki:3100
+    jsonData:
+      maxLines: 1000
+    editable: false

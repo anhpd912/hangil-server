@@ -1,0 +1,90 @@
+// Grafana Alloy — gom log container đẩy vào Loki. Thay Promtail (đã EOL ~3/2026, không còn bản vá).
+// Cú pháp là Alloy config language, không phải YAML: mỗi khối là một component, nối với nhau
+// qua tham chiếu (component này forward_to receiver của component kia).
+
+logging {
+  // Alloy tự log vào stdout, mà chính nó lại đọc stdout mọi container → để info sẽ tự bơm log của mình
+  level  = "warn"
+  format = "logfmt"
+}
+
+// 1. Tìm container đang chạy qua Docker API
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+// 2. Chuyển metadata của Docker thành label Loki
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+}
+
+// 3. Đọc log qua Docker API (không tự parse /var/lib/docker/containers)
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.process.api.receiver]
+}
+
+// 4. Parse log pino của API. Chỉ áp cho container API — log của Loki/Grafana không phải JSON pino.
+loki.process "api" {
+  forward_to = [loki.write.default.receiver]
+
+  stage.match {
+    selector = "{container=\"hangil-api\"}"
+
+    // level ở đây là chữ ("error"), không phải số 50 — xem formatter trong src/lib/logger.ts
+    stage.json {
+      expressions = {
+        level      = "level",
+        msg        = "msg",
+        reqId      = "reqId",
+        url        = "req.url",
+        statusCode = "res.statusCode",
+      }
+    }
+
+    // Bỏ log health check: Docker HEALTHCHECK + Prometheus gọi liên tục, giữ lại thì
+    // phần lớn dung lượng Loki là những dòng vô nghĩa này.
+    stage.drop {
+      source     = "url"
+      expression = "^/health.*"
+    }
+
+    stage.labels {
+      values = { level = "" }
+    }
+
+    stage.timestamp {
+      source            = "time"
+      format            = "UnixMs"
+      action_on_failure = "fudge"
+    }
+  }
+}
+
+// Dòng không phải JSON (stack trace lúc crash, log của Node runtime) vẫn được gửi nguyên văn —
+// stage.json thất bại chỉ bỏ qua các stage sau cho riêng dòng đó, không drop cả dòng.
+
+loki.write "default" {
+  endpoint {
+    url = "http://hangil-loki:3100/loki/api/v1/push"
+  }
+}

@@ -1,0 +1,30 @@
+# Scrape 30s (không phải 15s) — trên VPS 2GB, số điểm dữ liệu giảm một nửa mà vẫn đủ
+# phát hiện sự cố trong vòng 1-2 phút.
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    env: production
+
+scrape_configs:
+  # fastify-metrics expose sẵn ở /metrics. Gọi qua hangil-net, KHÔNG qua Nginx —
+  # Nginx đã chặn /metrics ra internet (deploy/nginx-api-hangil.conf).
+  - job_name: hangil-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["hangil-api:3201"]
+        labels: { service: api }
+
+  - job_name: node
+    static_configs:
+      - targets: ["hangil-node-exporter:9100"]
+        labels: { service: vps }
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: loki
+    static_configs:
+      - targets: ["hangil-loki:3100"]

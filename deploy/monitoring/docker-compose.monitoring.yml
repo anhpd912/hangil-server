@@ -1,0 +1,128 @@
+# Stack monitoring cho VPS 2GB. Đặt ở /opt/monitoring (tách khỏi repo API).
+#   docker compose -f docker-compose.monitoring.yml up -d
+#
+# Mọi service join hangil-net (network do compose của API tạo) để Prometheus gọi được api:3201.
+# Tất cả bind 127.0.0.1 — chỉ Grafana ra ngoài, qua Nginx + SSL.
+# mem_limit theo ngân sách RAM: OS ~300M + API 400M + stack này ~950M < 2G, còn swap làm lưới.
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: hangil-prometheus
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # Giữ 7 ngày VÀ chặn theo dung lượng — hết trước cái nào áp cái đó
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.size=1GB
+      - --web.listen-address=0.0.0.0:9090
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    networks: [hangil-net]
+    mem_limit: 300m
+    logging: &default-logging
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: hangil-loki
+    restart: unless-stopped
+    user: "10001:10001"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    ports: ["127.0.0.1:3100:3100"]
+    networks: [hangil-net]
+    mem_limit: 300m
+    environment:
+      # Go GC chủ động hơn khi gần trần — tránh bị OOM-kill thay vì chỉ chậm đi
+      - GOMEMLIMIT=250MiB
+    logging: *default-logging
+
+  # Alloy thay Promtail — Promtail EOL ~3/2026, không còn nhận bản vá.
+  # Kiểm tra tag mới ở https://github.com/grafana/alloy/releases trước khi nâng.
+  alloy:
+    image: grafana/alloy:v1.9.0
+    container_name: hangil-alloy
+    restart: unless-stopped
+    # Cần root để đọc /var/run/docker.sock
+    user: root
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=127.0.0.1:12345
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      # Docker service discovery: đọc log qua API của daemon, không tự parse /var/lib/docker
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    networks: [hangil-net]
+    mem_limit: 192m
+    depends_on: [loki]
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: hangil-grafana
+    restart: unless-stopped
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:?can dat GF_ADMIN_PASSWORD trong .env}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_SERVER_ROOT_URL=${GF_ROOT_URL:-https://grafana.hangil.io.vn}
+      - GF_INSTALL_PLUGINS=
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:?can dat TELEGRAM_BOT_TOKEN trong .env}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:?can dat TELEGRAM_CHAT_ID trong .env}
+    ports: ["127.0.0.1:3000:3000"]
+    networks: [hangil-net]
+    mem_limit: 256m
+    depends_on: [prometheus, loki]
+    logging: *default-logging
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: hangil-node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --collector.disable-defaults
+      # Chỉ bật collector thực sự dùng — mặc định bật ~40 cái, tốn RAM và làm nhiễu metric
+      - --collector.cpu
+      - --collector.meminfo
+      - --collector.filesystem
+      - --collector.loadavg
+      - --collector.diskstats
+      - --collector.netdev
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    networks: [hangil-net]
+    mem_limit: 64m
+    logging: *default-logging
+
+networks:
+  # external — network này do docker-compose.yml của API tạo. Bật API trước stack này.
+  hangil-net:
+    external: true
+    name: hangil-net
+
+volumes:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+  alloy_data:
