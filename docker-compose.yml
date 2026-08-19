@@ -1,10 +1,35 @@
 services:
   api:
-    build: .
+    # Image build sẵn ở Jenkins (máy local) rồi push GHCR — VPS 2GB không build nữa.
+    # IMAGE_TAG là git short SHA, ghi trong .env.deploy; rollback = deploy lại tag cũ.
+    image: ghcr.io/anhpd912/hangil-server:${IMAGE_TAG:-latest}
+    container_name: hangil-api
     restart: unless-stopped
     env_file: .env
     environment:
       - PORT=3201
       - HOST=0.0.0.0
+      - APP_VERSION=${IMAGE_TAG:-dev}
     ports:
+      # Chỉ loopback — Nginx là cổng public duy nhất
       - "127.0.0.1:3201:3201"
+    networks:
+      # Network dùng chung để Prometheus (stack monitoring) scrape được api:3201
+      - hangil-net
+    mem_limit: 400m
+    logging:
+      # Không giới hạn thì json-file phình vô hạn — đây cũng là nguồn Promtail đọc
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3201/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  hangil-net:
+    name: hangil-net

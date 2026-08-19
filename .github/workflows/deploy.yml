@@ -1,8 +1,16 @@
-name: Deploy
+# TẠM THỜI: chỉ còn build + test. Job deploy đã gỡ — Jenkins (Jenkinsfile) lo việc deploy.
+#
+# Vì sao gỡ ngay chứ không giữ làm fallback: docker-compose.yml không còn `build:` nữa
+# (VPS chỉ pull image từ GHCR), nên `docker compose up -d --build` của job cũ không còn
+# deploy được gì. Giữ lại chỉ tạo ảo giác có đường lui.
+#
+# XOÁ HẲN file này sau khi Jenkins deploy xanh ít nhất một lần.
+name: CI
 
 on:
   push:
     branches: [main]
+  pull_request:
 
 jobs:
   build-and-test:
@@ -12,21 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm test
-
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH and deploy
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            cd /opt/hangil-server
-            git pull origin main
-            docker compose up -d --build

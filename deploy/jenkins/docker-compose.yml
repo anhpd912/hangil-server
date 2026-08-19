@@ -1,0 +1,24 @@
+# Dựng Jenkins ở máy local: docker compose -f deploy/jenkins/docker-compose.yml up -d --build
+services:
+  jenkins:
+    build: .
+    image: hangil-jenkins:lts
+    container_name: hangil-jenkins
+    restart: unless-stopped
+    # Chạy root để dùng được docker.sock của Docker Desktop — GID của socket không cố định
+    # nên cách "thêm user jenkins vào group docker" không chạy ổn định trên Windows/macOS.
+    # Chấp nhận được vì đây là máy cá nhân; KHÔNG bê nguyên cấu hình này lên server dùng chung.
+    user: root
+    ports:
+      - "127.0.0.1:8080:8080"   # UI: http://localhost:8080
+      - "127.0.0.1:50000:50000" # agent (chưa dùng, để sẵn khi tách agent)
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # Build image bằng daemon của host thay vì dựng docker-in-docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true -Xmx1g
+      - TZ=Asia/Ho_Chi_Minh
+
+volumes:
+  jenkins_home:

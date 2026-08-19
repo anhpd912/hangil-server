@@ -4,3 +4,6 @@ dist/
 *.log
 CLAUDE.md
 AGENTS.md
+
+# Trạng thái deploy, chỉ tồn tại trên VPS
+.env.deploy

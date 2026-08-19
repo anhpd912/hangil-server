@@ -1,8 +1,13 @@
 node_modules
 dist
 .env
-.env.local
+.env.*
 .git
+.github
 plans
+docs
+deploy
 .gitnexus
 .claude
+*.md
+Jenkinsfile
