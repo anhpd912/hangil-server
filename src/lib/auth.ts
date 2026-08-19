@@ -5,6 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/index.js";
 import * as schema from "../db/auth-schema.js";
 import { sendResetPasswordEmail } from "../services/email.js";
+import { logger } from "./logger.js";
 
 export const auth = betterAuth({
   basePath: "/api/v1/auth",
@@ -21,10 +22,10 @@ export const auth = betterAuth({
       // directly from the `token` param rather than parsing the backend URL.
       const frontendBase = process.env.FRONTEND_URL ?? "http://localhost:3000";
       const resetUrl = `${frontendBase}/reset-password?token=${encodeURIComponent(token)}`;
-      console.info("[auth] sendResetPassword → token received, sending to", user.email);
+      logger.info({ to: user.email }, "[auth] sendResetPassword → token received");
       const result = await sendResetPasswordEmail(user.email, resetUrl);
       if (!result.ok) {
-        console.error("[auth] sendResetPassword failed:", result.error, { to: user.email });
+        logger.error({ to: user.email, err: result.error }, "[auth] sendResetPassword failed");
         throw new Error(result.error);
       }
     },
