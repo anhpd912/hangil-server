@@ -1,0 +1,27 @@
+# Cổng chất lượng cho PR và push lên main. KHÔNG deploy — Jenkins (Jenkinsfile) lo việc đó:
+# build image ở máy local, push GHCR, ssh vào VPS, smoke test, rollback nếu hỏng.
+#
+# Giữ workflow này vì nó chặn PR hỏng trước khi merge và không đụng tới VPS, nên không có
+# rủi ro hai hệ thống cùng deploy. Job deploy cũ đã gỡ: docker-compose.yml không còn `build:`
+# (VPS chỉ pull image), nên `docker compose up -d --build` của nó không deploy được gì nữa.
+#
+# Lưu ý: cổng `npm test` hiện chỉ có test cho thuật toán SM-2 — route/auth/AI chưa có test.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
