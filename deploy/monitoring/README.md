@@ -84,7 +84,12 @@ Explore → Loki → `{container="hangil-api"} |= "error"` để soi log.
 
 ## Alert
 
-8 rule provisioned sẵn (`grafana/provisioning/alerting/alert-rules.yml`), gửi Telegram:
+8 rule provisioned sẵn (`grafana/provisioning/alerting/alert-rules.yml`), gửi Telegram.
+
+⚠️ Contact point Telegram và notification policy **không** provisioning được — phải tạo
+bằng UI một lần sau khi dựng. Lý do và các bước: `grafana/alerting-manual/README.md`.
+Chưa làm bước đó thì rule vẫn chạy nhưng không có gì gửi đi.
+
 
 | Rule | Ngưỡng | Mức |
 |---|---|---|
