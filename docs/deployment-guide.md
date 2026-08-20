@@ -109,8 +109,8 @@ push main → Jenkins poll (5') → npm ci / build / test → docker build --bui
 Hướng dẫn dựng Jenkins, tạo credentials và SSH key deploy: `deploy/jenkins/README.md`.
 Script chạy trên VPS: `deploy/remote-deploy.sh` (pipe qua stdin, VPS không cần có sẵn).
 
-`.github/workflows/deploy.yml` chỉ còn build + test, sẽ xoá sau khi Jenkins deploy xanh
-lần đầu — không để hai hệ thống cùng deploy một VPS.
+`.github/workflows/ci.yml` chỉ còn build + test — cổng chất lượng cho PR, không đụng tới
+VPS, nên không có chuyện hai hệ thống cùng deploy.
 
 ## 10. Monitoring (Prometheus + Loki + Grafana)
 

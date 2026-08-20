@@ -80,5 +80,5 @@ lần build đầu — đây là hành vi cố hữu của "pipeline from SCM").
   sau khi bật máy — không mất commit, chỉ trễ.
 - Cổng chất lượng `npm test` hiện chỉ có 6 test cho thuật toán SM-2; route/auth/AI chưa có test.
   Pipeline auto-deploy chỉ đáng tin bằng đúng bộ test này.
-- `.github/workflows/deploy.yml` bị xoá sau khi Jenkins deploy xanh ít nhất một lần —
+- `.github/workflows/ci.yml` giữ lại làm cổng build/test cho PR, không deploy —
   không để hai hệ thống cùng deploy một VPS.
