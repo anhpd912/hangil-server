@@ -20,7 +20,7 @@ docker compose -f deploy/jenkins/docker-compose.yml up -d --build
 docker logs hangil-jenkins 2>&1 | grep -A2 "initialAdminPassword"   # mật khẩu lần đầu
 ```
 
-Mở http://localhost:8080 → dán mật khẩu → chọn **Install suggested plugins** →
+Mở http://localhost:8081 → dán mật khẩu → chọn **Install suggested plugins** →
 tạo admin user. Plugin cần cho pipeline đã nướng sẵn trong image (`plugins.txt`).
 
 ## 2. Credentials (Manage Jenkins → Credentials → System → Global)
