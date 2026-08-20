@@ -1,36 +1,49 @@
-// Admin route: GET /stats — số liệu tổng quan hệ thống
+// Admin routes: /stats/* — số liệu vận hành cho dashboard.
+// Toàn bộ truy vấn nằm ở services/admin-dashboard/*, route chỉ validate + đóng envelope.
 import type { FastifyPluginAsync } from "fastify";
-import { and, count, gte, isNotNull, lt } from "drizzle-orm";
-import { db } from "../../db/index.js";
-import { user, userProgress, journalEntries } from "../../db/schema.js";
-import { toVnDateKey } from "../../services/streak.js";
+import { z } from "zod";
+import { getAdminStats } from "../../services/admin-dashboard/overview-stats.js";
+import { getRecentActivity } from "../../services/admin-dashboard/recent-activity.js";
+import { getDailyActivity } from "../../services/admin-dashboard/daily-activity.js";
+import { getServiceHealth } from "../../services/admin-dashboard/service-health.js";
+
+const activityQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
+const timeseriesQuerySchema = z.object({
+  days: z.coerce.number().int().min(2).max(30).default(7),
+});
 
 const adminStatsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/stats", async (_request, reply) => {
-    const now = new Date();
-    const todayKey = toVnDateKey(now);
-    const todayStartUtc = new Date(`${todayKey}T00:00:00+07:00`);
-    const tomorrowStartUtc = new Date(todayStartUtc.getTime() + 24 * 60 * 60 * 1000);
+    return reply.send({ success: true, data: await getAdminStats() });
+  });
 
-    const [[totalUsers], [activeToday], [lessonsCompleted], [journalCalls]] = await Promise.all([
-      db.select({ value: count() }).from(user),
-      db
-        .select({ value: count() })
-        .from(user)
-        .where(and(gte(user.lastStudiedAt, todayStartUtc), lt(user.lastStudiedAt, tomorrowStartUtc))),
-      db.select({ value: count() }).from(userProgress).where(isNotNull(userProgress.completedAt)),
-      db.select({ value: count() }).from(journalEntries),
-    ]);
+  fastify.get("/stats/activity", async (request, reply) => {
+    const parsed = activityQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: "Query không hợp lệ", code: "VALIDATION_ERROR" });
+    }
 
-    return reply.send({
-      success: true,
-      data: {
-        totalUsers: totalUsers?.value ?? 0,
-        activeToday: activeToday?.value ?? 0,
-        lessonsCompleted: lessonsCompleted?.value ?? 0,
-        journalCheckCalls: journalCalls?.value ?? 0,
-      },
-    });
+    const items = await getRecentActivity(parsed.data.limit);
+    return reply.send({ success: true, data: { items } });
+  });
+
+  fastify.get("/stats/timeseries", async (request, reply) => {
+    const parsed = timeseriesQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: "Query không hợp lệ", code: "VALIDATION_ERROR" });
+    }
+
+    const points = await getDailyActivity(parsed.data.days);
+    return reply.send({ success: true, data: { days: parsed.data.days, points } });
+  });
+
+  // Chạm DB + Redis mỗi lần gọi nên tắt rate limit toàn cục sẽ nguy hiểm; giữ nguyên quota mặc định.
+  fastify.get("/stats/services", async (_request, reply) => {
+    const services = await getServiceHealth();
+    return reply.send({ success: true, data: { services, checkedAt: new Date().toISOString() } });
   });
 };
 
