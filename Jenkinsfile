@@ -77,8 +77,7 @@ pipeline {
             // Script được pipe qua stdin => VPS chạy đúng bản script của commit này
             sh '''
               set -eu
-              ssh -o StrictHostKeyChecking=accept-new "$VPS_TARGET" \
-                "bash -s -- deploy $GIT_SHA" < deploy/remote-deploy.sh
+              ssh -o StrictHostKeyChecking=accept-new "$VPS_TARGET" "bash -s -- deploy $GIT_SHA" < deploy/remote-deploy.sh
             '''
           }
         }
@@ -94,7 +93,12 @@ pipeline {
           set -eu
           for i in $(seq 1 10); do
             body=$(curl -fsS --max-time 10 "$HEALTH_URL" || true)
-            commit=$(printf '%s' "$body" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')
+            # Không dùng backslash trong regex: Groovy nuốt escape của chuỗi ''' trước khi
+            # shell nhìn thấy, nên cắt hai đầu bằng hai lệnh sed là cách an toàn nhất.
+            case "$body" in
+              *'"commit":"'*) commit=$(printf '%s' "$body" | sed -e 's/.*"commit":"//' -e 's/".*//') ;;
+              *) commit="" ;;
+            esac
             if [ "$commit" = "$GIT_SHA" ]; then
               echo "smoke OK: $body"
               exit 0
@@ -118,8 +122,7 @@ pipeline {
             withCredentials([string(credentialsId: 'vps-ssh-target', variable: 'VPS_TARGET')]) {
               sh '''
                 set +e
-                ssh -o StrictHostKeyChecking=accept-new "$VPS_TARGET" \
-                  "bash -s -- rollback" < deploy/remote-deploy.sh
+                ssh -o StrictHostKeyChecking=accept-new "$VPS_TARGET" "bash -s -- rollback" < deploy/remote-deploy.sh
               '''
             }
           }
@@ -149,9 +152,7 @@ void notify(String message) {
                      string(credentialsId: 'telegram-chat-id',   variable: 'TG_CHAT')]) {
       withEnv(["TG_MESSAGE=${message}"]) {
         sh '''
-          curl -fsS -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
-            --data-urlencode "chat_id=$TG_CHAT" \
-            --data-urlencode "text=$TG_MESSAGE" >/dev/null || true
+          curl -fsS -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" --data-urlencode "chat_id=$TG_CHAT" --data-urlencode "text=$TG_MESSAGE" >/dev/null || true
         '''
       }
     }
