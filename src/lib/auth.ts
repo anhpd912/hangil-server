@@ -7,11 +7,19 @@ import * as schema from "../db/auth-schema.js";
 import { sendResetPasswordEmail } from "../services/email.js";
 import { logger } from "./logger.js";
 
+const frontendURL = process.env.FRONTEND_URL ?? "http://localhost:3000";
+
 export const auth = betterAuth({
   basePath: "/api/v1/auth",
   database: drizzleAdapter(db, { provider: "pg", schema }),
+  // Mặc định lỗi OAuth redirect về `{baseURL}/error` — tức domain API, nơi không
+  // có trang nào phục vụ người dùng nên chỉ trả 404 JSON. Đẩy về trang callback
+  // của frontend để hiện thông báo tiếng Việt.
+  onAPIError: {
+    errorURL: `${frontendURL}/auth/callback`,
+  },
   trustedOrigins: [
-    process.env.FRONTEND_URL ?? "http://localhost:3000",
+    frontendURL,
     process.env.ADMIN_FRONTEND_URL ?? "http://localhost:3100",
   ],
   emailAndPassword: {
@@ -20,8 +28,7 @@ export const auth = betterAuth({
       // Better Auth's `url` is {BETTER_AUTH_URL}/reset-password/{token}?callbackURL=...
       // Token is a PATH segment, not a query param — so we build the frontend URL
       // directly from the `token` param rather than parsing the backend URL.
-      const frontendBase = process.env.FRONTEND_URL ?? "http://localhost:3000";
-      const resetUrl = `${frontendBase}/reset-password?token=${encodeURIComponent(token)}`;
+      const resetUrl = `${frontendURL}/reset-password?token=${encodeURIComponent(token)}`;
       logger.info({ to: user.email }, "[auth] sendResetPassword → token received");
       const result = await sendResetPasswordEmail(user.email, resetUrl);
       if (!result.ok) {
