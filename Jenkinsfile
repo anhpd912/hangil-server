@@ -93,8 +93,8 @@ pipeline {
           set -eu
           for i in $(seq 1 10); do
             body=$(curl -fsS --max-time 10 "$HEALTH_URL" || true)
-            # Không dùng backslash trong regex: Groovy nuốt escape của chuỗi ''' trước khi
-            # shell nhìn thấy, nên cắt hai đầu bằng hai lệnh sed là cách an toàn nhất.
+            # Không dùng backslash trong regex sed: Groovy nuốt escape của chuỗi shell
+            # trước khi shell nhìn thấy, nên cắt hai đầu bằng hai lệnh sed là an toàn nhất.
             case "$body" in
               *'"commit":"'*) commit=$(printf '%s' "$body" | sed -e 's/.*"commit":"//' -e 's/".*//') ;;
               *) commit="" ;;
