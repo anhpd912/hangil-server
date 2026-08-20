@@ -21,17 +21,14 @@ import ttsRoutes from "./routes/tts.js";
 import * as fastifyMetrics from "fastify-metrics";
 import { AppError } from "./lib/errors.js";
 import { logger } from "./lib/logger.js";
+import { getAllowedOrigins } from "./lib/allowed-origins.js";
 
 // loggerInstance (không phải `logger`) là cách Fastify 5 nhận một pino instance có sẵn.
 // Dùng chung instance với code ngoài request để mọi dòng log có cùng format cho Loki.
 const fastify = Fastify({ loggerInstance: logger });
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL ?? "http://localhost:3000",
-  process.env.ADMIN_FRONTEND_URL ?? "http://localhost:3100",
-];
 await fastify.register(cors, {
-  origin: allowedOrigins,
+  origin: getAllowedOrigins(),
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,

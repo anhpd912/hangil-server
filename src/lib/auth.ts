@@ -6,6 +6,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/auth-schema.js";
 import { sendResetPasswordEmail } from "../services/email.js";
 import { logger } from "./logger.js";
+import { getAllowedOrigins } from "./allowed-origins.js";
 
 const frontendURL = process.env.FRONTEND_URL ?? "http://localhost:3000";
 
@@ -18,10 +19,7 @@ export const auth = betterAuth({
   onAPIError: {
     errorURL: `${frontendURL}/auth/callback`,
   },
-  trustedOrigins: [
-    frontendURL,
-    process.env.ADMIN_FRONTEND_URL ?? "http://localhost:3100",
-  ],
+  trustedOrigins: getAllowedOrigins(),
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url: _url, token }) => {
